@@ -1,0 +1,2 @@
+timestamp,animal,confidence,image,box
+2026-04-07 14:49:32,Bear,0.92,detections/Bear_1775553572.jpg,"[340, 197, 472, 320]"
