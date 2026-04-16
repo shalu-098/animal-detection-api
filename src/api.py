@@ -6,12 +6,21 @@ from ultralytics import YOLO
 from torchvision.models import efficientnet_b4
 import torchvision.transforms as transforms
 from fastapi import FastAPI, UploadFile, File
+from fastapi.middleware.cors import CORSMiddleware
 from PIL import Image
 
 # ===== INIT APP =====
 app = FastAPI()
 
 device = torch.device("cpu")
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # for testing (later restrict this)
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 # ===== LOAD MODELS =====
 yolo_model = YOLO("model/best.pt")
