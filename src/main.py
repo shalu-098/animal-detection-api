@@ -8,6 +8,8 @@ import time
 import winsound
 import os
 import csv
+import uuid
+import json
 
 # ===== SETUP =====
 device = torch.device("cpu")
@@ -63,16 +65,24 @@ transform = transforms.Compose([
     transforms.ToTensor(),
 ])
 
+def log_json(data):
+    with open("detections/log.json", "a") as f:
+        f.write(json.dumps(data) + "\n")
+
 # ===== LOG FUNCTION =====
-def log_detection(label, confidence, image_path, box):
+def log_detection(label, confidence, image_path, box, danger, count):
     with open(LOG_FILE, mode='a', newline='') as file:
         writer = csv.writer(file)
         writer.writerow([
+            str(uuid.uuid4()),  # unique id
             time.strftime("%Y-%m-%d %H:%M:%S"),
             label,
             f"{confidence:.2f}",
+            danger,
             image_path,
-            box
+            box,
+            count,
+            "unknown"  # placeholder for GPS later
         ])
 
 # ===== CAMERA =====
@@ -155,8 +165,20 @@ while True:
         cv2.imwrite(filename, frame)
 
         # log data
-        log_detection(detected_label, last_confidence, filename, last_box)
-
+        log_detection(
+    detected_label,
+    last_confidence,
+    filename,
+    last_box,
+    True,  # since it's dangerous
+    detection_counter
+)
+        log_json({
+    "animal": detected_label,
+    "confidence": last_confidence,
+    "box": last_box,
+    "time": time.time()
+})
         last_alert_time = time.time()
         detection_counter = 0
 
