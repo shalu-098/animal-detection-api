@@ -11,6 +11,8 @@ import csv
 import uuid
 import json
 
+BASE_URL = "https://api.pahadix.in"
+
 # ===== SETUP =====
 device = torch.device("cpu")
 
@@ -22,7 +24,17 @@ LOG_FILE = "detections/log.csv"
 if not os.path.exists(LOG_FILE):
     with open(LOG_FILE, mode='w', newline='') as file:
         writer = csv.writer(file)
-        writer.writerow(["timestamp", "animal", "confidence", "image", "box"])
+        writer.writerow([
+            "id",
+            "timestamp",
+            "animal",
+            "confidence",
+            "danger",
+            "image",
+            "box",
+            "detection_count",
+            "location"
+        ])
 
 # ===== LOAD MODELS =====
 yolo_model = YOLO("model/best.pt")
@@ -159,20 +171,25 @@ while True:
     if detection_counter >= 5 and time.time() - last_alert_time > COOLDOWN:
         print(f"🚨 ALERT: {detected_label}")
 
-        winsound.Beep(1000, 1000)
+        try:
+            import winsound
+            winsound.Beep(1000, 1000)
+        except:
+            print("🚨 ALERT SOUND")
 
         filename = f"detections/{detected_label}_{int(time.time())}.jpg"
         cv2.imwrite(filename, frame)
 
-        # log data
+        image_url = f"{BASE_URL}/{filename}"
+
         log_detection(
-    detected_label,
-    last_confidence,
-    filename,
-    last_box,
-    True,  # since it's dangerous
-    detection_counter
-)
+            detected_label,
+            last_confidence,
+            image_url,   # ✅ now accessible in UI
+            last_box,
+            True,
+            detection_counter
+        )
         log_json({
     "animal": detected_label,
     "confidence": last_confidence,
