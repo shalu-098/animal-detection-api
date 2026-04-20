@@ -13,6 +13,7 @@ import torchvision.transforms as transforms
 from fastapi import FastAPI, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
 from PIL import Image
+from alert import trigger_alert
 
 # ===== INIT APP =====
 app = FastAPI()
@@ -133,6 +134,9 @@ async def detect(file: UploadFile = File(...)):
             if confidence < 0.70:
                 continue
             danger = label in DANGEROUS_ANIMALS
+
+            if danger:
+                trigger_alert(label, confidence)
 
             if saved_image_url is None:
                 filename = f"detections/{int(time.time())}.jpg"

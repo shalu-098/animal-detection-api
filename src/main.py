@@ -10,6 +10,7 @@ import os
 import csv
 import uuid
 import json
+from alert import trigger_alert
 
 BASE_URL = "https://api.pahadix.in"
 
@@ -40,7 +41,7 @@ if not os.path.exists(LOG_FILE):
 yolo_model = YOLO("model/best.pt")
 
 classifier = efficientnet_b4(weights=None)
-classifier.classifier[1] = nn.Linear(classifier.classifier[1].in_features, 17)
+classifier.classifier[1] = nn.Linear(classifier.classifier[1].in_features, 17) # type: ignore
 
 classifier.load_state_dict(
     torch.load("model/animal_classifier_efficientnet.pth", map_location=device)
@@ -134,7 +135,7 @@ while True:
                 continue
 
             crop_rgb = cv2.cvtColor(crop, cv2.COLOR_BGR2RGB)
-            input_tensor = transform(crop_rgb).unsqueeze(0).to(device)
+            input_tensor = transform(crop_rgb).unsqueeze(0).to(device) # type: ignore
 
             with torch.no_grad():
                 outputs = classifier(input_tensor)
@@ -144,7 +145,7 @@ while True:
             conf = conf.item()
             pred = pred.item()
 
-            label_name = class_names[pred]
+            label_name = class_names[pred] # type: ignore
 
             if conf < CLS_THRESHOLD:
                 label = "Unknown"
@@ -169,13 +170,7 @@ while True:
         detection_counter = 0
 
     if detection_counter >= 5 and time.time() - last_alert_time > COOLDOWN:
-        print(f"🚨 ALERT: {detected_label}")
-
-        try:
-            import winsound
-            winsound.Beep(1000, 1000)
-        except:
-            print("🚨 ALERT SOUND")
+        trigger_alert(detected_label, last_confidence)
 
         filename = f"detections/{detected_label}_{int(time.time())}.jpg"
         cv2.imwrite(filename, frame)
