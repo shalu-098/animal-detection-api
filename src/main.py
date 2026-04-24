@@ -1,14 +1,14 @@
 import cv2
 import torch
 import torchvision.transforms as transforms
-from model_loader import load_models
+from src.model_loader import load_models
 yolo_model, classifier = load_models()
 import time
 import os
 import csv
 import uuid
 import json
-from alert import trigger_alert
+from src.alert import trigger_alert
 
 #BASE_URL = "https://api.pahadix.in"
 BASE_URL = os.getenv("BASE_URL", "http://localhost:8000")
@@ -37,19 +37,19 @@ if not os.path.exists(LOG_FILE):
         ])
 
 # ===== LOAD MODELS =====
-yolo_model = YOLO("model/best.pt")
+# yolo_model = YOLO("model/best.pt")
 
-classifier = efficientnet_b4(weights=None)
-if isinstance(classifier.classifier[1], nn.Linear):
-    in_features = classifier.classifier[1].in_features
-    classifier.classifier[1] = nn.Linear(in_features, 17) # type: ignore
+# classifier = efficientnet_b4(weights=None)
+# if isinstance(classifier.classifier[1], nn.Linear):
+#     in_features = classifier.classifier[1].in_features
+#     classifier.classifier[1] = nn.Linear(in_features, 17) # type: ignore
 
-classifier.load_state_dict(
-    torch.load("model/animal_classifier_efficientnet.pth", map_location=device)
-)
+# classifier.load_state_dict(
+#     torch.load("model/animal_classifier_efficientnet.pth", map_location=device)
+# )
 
-classifier = classifier.to(device)
-classifier.eval()
+# classifier = classifier.to(device)
+# classifier.eval()
 
 # ===== CLASS NAMES =====
 class_names = [

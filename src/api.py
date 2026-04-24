@@ -11,8 +11,8 @@ import io
 from fastapi import FastAPI, UploadFile, File, Request
 from fastapi.middleware.cors import CORSMiddleware
 from PIL import Image
-from alert import trigger_alert
-from model_loader import load_models
+from src.alert import trigger_alert
+from src.model_loader import load_models
 
 yolo_model, classifier = load_models()
 
@@ -53,19 +53,19 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# ===== LOAD MODELS =====
-yolo_model = YOLO("model/best.pt")
+# # ===== LOAD MODELS =====
+# yolo_model = YOLO("model/best.pt")
 
-classifier = efficientnet_b4(weights=None)
-if isinstance(classifier.classifier[1], nn.Linear):
-    in_features = classifier.classifier[1].in_features
-    classifier.classifier[1] = nn.Linear(in_features, 17) # type: ignore
+# classifier = efficientnet_b4(weights=None)
+# if isinstance(classifier.classifier[1], nn.Linear):
+#     in_features = classifier.classifier[1].in_features
+#     classifier.classifier[1] = nn.Linear(in_features, 17) # type: ignore
 
-classifier.load_state_dict(
-    torch.load("model/animal_classifier_efficientnet.pth", map_location=device)
-)
+# classifier.load_state_dict(
+#     torch.load("model/animal_classifier_efficientnet.pth", map_location=device)
+# )
 
-classifier.eval()
+# classifier.eval()
 
 def log_detection(label, confidence, image_url, box, danger, count):
     with open(LOG_FILE, mode='a', newline='') as file:
