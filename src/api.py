@@ -5,20 +5,22 @@ import uuid
 from fastapi.staticfiles import StaticFiles
 import cv2
 import torch
-import torch.nn as nn
 import numpy as np
-from ultralytics import YOLO
-from torchvision.models import efficientnet_b4
 import torchvision.transforms as transforms
-from fastapi import FastAPI, UploadFile, File
+import io
+from fastapi import FastAPI, UploadFile, File, Request
 from fastapi.middleware.cors import CORSMiddleware
 from PIL import Image
 from alert import trigger_alert
+from model_loader import load_models
+
+yolo_model, classifier = load_models()
 
 # ===== INIT APP =====
 app = FastAPI()
 
-BASE_URL = "https://api.pahadix.in"
+#BASE_URL = "https://api.pahadix.in"
+BASE_URL = os.getenv("BASE_URL", "http://localhost:8000")
 
 os.makedirs("detections", exist_ok=True)
 
@@ -55,7 +57,9 @@ app.add_middleware(
 yolo_model = YOLO("model/best.pt")
 
 classifier = efficientnet_b4(weights=None)
-classifier.classifier[1] = nn.Linear(classifier.classifier[1].in_features, 17)
+if isinstance(classifier.classifier[1], nn.Linear):
+    in_features = classifier.classifier[1].in_features
+    classifier.classifier[1] = nn.Linear(in_features, 17) # type: ignore
 
 classifier.load_state_dict(
     torch.load("model/animal_classifier_efficientnet.pth", map_location=device)
@@ -97,6 +101,13 @@ transform = transforms.Compose([
 @app.post("/detect")
 async def detect(file: UploadFile = File(...)):
 
+    # For ESP32 imag input
+    # async def detect(request: Request):
+    # body = await request.body()
+
+    # image = Image.open(io.BytesIO(body)).convert("RGB")
+    # img = np.array(image)
+
     # read image
     image = Image.open(file.file).convert("RGB")
     img = np.array(image)
@@ -108,7 +119,6 @@ async def detect(file: UploadFile = File(...)):
     if results.boxes is not None:
         boxes = results.boxes.xyxy.cpu().numpy()
         scores = results.boxes.conf.cpu().numpy()
-        detections = []
         saved_image_url = None
 
         for box, score in zip(boxes, scores):
@@ -122,14 +132,14 @@ async def detect(file: UploadFile = File(...)):
             if crop.size == 0:
                 continue
 
-            input_tensor = transform(Image.fromarray(crop)).unsqueeze(0)
+            input_tensor = transform(Image.fromarray(crop)).unsqueeze(0) # type: ignore
 
             with torch.no_grad():
                 outputs = classifier(input_tensor)
                 probs = torch.softmax(outputs, dim=1)
                 conf, pred = torch.max(probs, dim=1)
 
-            label = class_names[pred.item()]
+            label = class_names[pred.item()] # type: ignore
             confidence = conf.item()
             if confidence < 0.70:
                 continue
@@ -139,7 +149,7 @@ async def detect(file: UploadFile = File(...)):
                 trigger_alert(label, confidence)
 
             if saved_image_url is None:
-                filename = f"detections/{int(time.time())}.jpg"
+                filename = f"detections/{uuid.uuid4()}.jpg"
                 cv2.imwrite(filename, cv2.cvtColor(img, cv2.COLOR_RGB2BGR))
                 saved_image_url = f"{BASE_URL}/{filename}"
 

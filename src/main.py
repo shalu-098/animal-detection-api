@@ -1,18 +1,17 @@
 import cv2
 import torch
-import torch.nn as nn
-from ultralytics import YOLO
-from torchvision.models import efficientnet_b4
 import torchvision.transforms as transforms
+from model_loader import load_models
+yolo_model, classifier = load_models()
 import time
-import winsound
 import os
 import csv
 import uuid
 import json
 from alert import trigger_alert
 
-BASE_URL = "https://api.pahadix.in"
+#BASE_URL = "https://api.pahadix.in"
+BASE_URL = os.getenv("BASE_URL", "http://localhost:8000")
 
 # ===== SETUP =====
 device = torch.device("cpu")
@@ -41,7 +40,9 @@ if not os.path.exists(LOG_FILE):
 yolo_model = YOLO("model/best.pt")
 
 classifier = efficientnet_b4(weights=None)
-classifier.classifier[1] = nn.Linear(classifier.classifier[1].in_features, 17) # type: ignore
+if isinstance(classifier.classifier[1], nn.Linear):
+    in_features = classifier.classifier[1].in_features
+    classifier.classifier[1] = nn.Linear(in_features, 17) # type: ignore
 
 classifier.load_state_dict(
     torch.load("model/animal_classifier_efficientnet.pth", map_location=device)

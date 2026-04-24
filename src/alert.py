@@ -1,18 +1,27 @@
 import time
 import requests
 
+
 MODE = "mock"  
 # options: mock | api | gpio
 
+last_alert_time = 0
+COOLDOWN = 5
+
 def trigger_alert(label, confidence):
+    global last_alert_time
+
+    if time.time() - last_alert_time < COOLDOWN:
+        return
+
+    last_alert_time = time.time()
+
     print(f"🚨 ALERT TRIGGERED: {label} ({confidence:.2f})")
 
     if MODE == "mock":
         mock_alert()
-
     elif MODE == "api":
         api_alert(label, confidence)
-
     elif MODE == "gpio":
         gpio_alert()
 
